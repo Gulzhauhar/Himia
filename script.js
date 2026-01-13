@@ -43,7 +43,6 @@ r = reactions[choice]
 st.markdown(f"**Реагенттер:** {r['reagents']}")
 st.markdown(f"**Бақылау:** {r['observation']}")
 
-
 st.markdown("### 🧪 Пробирка")
 
 st.markdown(
