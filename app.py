@@ -1,139 +1,128 @@
-from IPython.display import HTML
+import streamlit as st
+import time
 
-html_code = """
-<!DOCTYPE html>
-<html>
-<head>
-<style>
-    body { font-family: 'Arial', sans-serif; background: #eef2f3; display: flex; justify-content: center; padding: 20px; }
-    .lab-box { width: 850px; background: white; border-radius: 15px; padding: 25px; box-shadow: 0 10px 30px rgba(0,0,0,0.1); }
+# Беттің баптаулары
+st.set_page_config(page_title="Органикалық химия зертханасы", layout="wide")
+
+# CSS стильдері (Пробирка мен эффектілер үшін)
+st.markdown("""
+    <style>
+    .test-tube {
+        height: 250px;
+        width: 60px;
+        border: 3px solid #ccc;
+        border-radius: 0 0 30px 30px;
+        margin: auto;
+        position: relative;
+        background: rgba(255, 255, 255, 0.1);
+        overflow: hidden;
+    }
+    .liquid {
+        position: absolute;
+        bottom: 0;
+        width: 100%;
+        transition: all 1s ease;
+    }
+    .bubble {
+        position: absolute;
+        bottom: 10%;
+        left: 50%;
+        width: 10px;
+        height: 10px;
+        background: rgba(255, 255, 255, 0.5);
+        border-radius: 50%;
+        animation: rise 2s infinite;
+    }
+    @keyframes rise {
+        0% { bottom: 10%; opacity: 1; }
+        100% { bottom: 90%; opacity: 0; }
+    }
+    </style>
+""", unsafe_allow_html=True)
+
+st.title("🔬 Органикалық химия: Виртуалды зертхана")
+st.write("Реактивтерді таңдап, зертханалық жұмысты орындаңыз.")
+
+# Зертханалық жұмыстар тізімі
+lab_works = {
+    "Альдегидтерді анықтау": {
+        "reagent_a": "Формальдегид",
+        "reagent_b": "AgNO3 + NH4OH (Күміс оксидінің аммиактағы ерітіндісі)",
+        "result_text": "Пробирка қабырғасында жылтыр күміс қабаты түзілді.",
+        "color": "#C0C0C0", # Күміс түс
+        "gas": False,
+        "precipitate": "Металл күміс (тұнба)",
+        "equation": "$$R-CHO + 2[Ag(NH_3)_2]OH \\xrightarrow{t} R-COONH_4 + 2Ag↓ + 3NH_3 + H_2O$$"
+    },
+    "Қанықпаған көмірсутектер (Этилен)": {
+        "reagent_a": "Этилен (C2H4)",
+        "reagent_b": "Бром суы (Br2 ерітіндісі)",
+        "result_text": "Бром суының сары-қоңыр түсі жойылды.",
+        "color": "rgba(255, 255, 255, 0.2)", # Түссіз
+        "gas": True,
+        "precipitate": "Жоқ",
+        "equation": "$$CH_2=CH_2 + Br_2 \\rightarrow CH_2Br-CH_2Br$$"
+    },
+    "Ақуызды анықтау (Биурет реакциясы)": {
+        "reagent_a": "Жұмыртқа ақуызы",
+        "reagent_b": "NaOH + CuSO4",
+        "result_text": "Ерітінді ашық күлгін түске боялды.",
+        "color": "#8A2BE2", # Күлгін
+        "gas": False,
+        "precipitate": "Жоқ (Кешенді қосылыс)",
+        "equation": "Ақуыз + Cu^{2+} \\xrightarrow{OH^-} \\text{Күлгін кешенді қосылыс}"
+    }
+}
+
+# Сол жақ панель - Басқару
+st.sidebar.header("🛠 Зертханалық үстел")
+choice = st.sidebar.selectbox("Зертханалық жұмысты таңдаңыз:", list(lab_works.keys()))
+start_btn = st.sidebar.button("Реакцияны бастау")
+
+# Орталық бөлім - Эксперимент
+col1, col2 = st.columns([1, 1])
+
+with col1:
+    st.subheader("📋 Жұмыс барысы")
+    work = lab_works[choice]
+    st.write(f"**1-ші зат:** {work['reagent_a']}")
+    st.write(f"**2-ші зат:** {work['reagent_b']}")
     
-    .screen { 
-        height: 380px; background: white; border-radius: 10px; position: relative; 
-        overflow: hidden; border: 2px solid #ddd; display: flex; justify-content: center; align-items: flex-end;
-    }
+    if start_btn:
+        st.info("Процесс: Реактивтер араластырылуда...")
+        time.sleep(2)
+        st.success("Нәтиже дайын!")
+        st.write(f"**Бақылау:** {work['result_text']}")
+        st.write(f"**Тұнба:** {work['precipitate']}")
+        st.write("**Химиялық теңдеуі:**")
+        st.write(work['equation'])
 
-    /* Орталық пробирка */
-    .center-tube { 
-        width: 60px; height: 180px; border: 4px solid #333; border-radius: 0 0 30px 30px; 
-        position: relative; z-index: 5; margin-bottom: 30px; background: rgba(255,255,255,0.1);
-    }
-    .main-liquid { position: absolute; bottom: 0; width: 100%; height: 0%; transition: 2s; border-radius: 0 0 25px 25px; }
-
-    /* Жылжымалы пробиркалар */
-    .tube-container { 
-        position: absolute; bottom: 40px; width: 45px; height: 150px; 
-        transition: all 1.2s cubic-bezier(0.45, 0.05, 0.55, 0.95); z-index: 10;
-    }
-    .glass-body { 
-        width: 100%; height: 100%; border: 3px solid #444; border-radius: 0 0 22px 22px; 
-        position: relative; background: rgba(255,255,255,0.3); overflow: hidden;
-    }
-    .fluid { position: absolute; bottom: 0; width: 100%; height: 70%; transition: 1s; }
-
-    /* Молекулалар шарлары */
-    .molecule { position: absolute; width: 7px; height: 7px; border-radius: 50%; animation: move 3s infinite alternate; }
-    @keyframes move { from { transform: translate(0,0); } to { transform: translate(6px, -12px); } }
-
-    /* Құю анимациясы: Центрге бағыттау */
-    #t_left { left: 15%; }
-    #t_right { right: 15%; }
-
-    .pour-l { left: 38% !important; bottom: 180px !important; transform: rotate(-45deg); }
-    .pour-r { right: 38% !important; bottom: 180px !important; transform: rotate(45deg); }
-
-    /* Интерфейс */
-    .ui { display: grid; grid-template-columns: 1fr 1.2fr 1fr; gap: 15px; margin-top: 20px; background: #f8f9fa; padding: 20px; border-radius: 10px; }
-    .btn-start { grid-column: span 3; padding: 12px; background: #27ae60; color: white; border: none; border-radius: 5px; font-weight: bold; cursor: pointer; }
-    .btn-start:hover { background: #219150; }
-    label { font-size: 13px; display: block; margin-bottom: 3px; }
-</style>
-</head>
-<body>
-
-<div class="lab-box">
-    <h3 style="text-align:center;">🔬 Молекулалық деңгейдегі 5-реагентті лаборатория</h3>
+with col2:
+    st.subheader("🧪 Пробирка")
     
-    <div class="screen">
-        <div id="t_left" class="tube-container"><div class="glass-body"><div id="f_left" class="fluid"></div><div id="m_left"></div></div></div>
-        <div class="center-tube"><div id="f_main" class="main-liquid"></div><div id="m_main"></div></div>
-        <div id="t_right" class="tube-container"><div class="glass-body"><div id="f_right" class="fluid"></div><div id="m_right"></div></div></div>
-    </div>
-
-    <div class="ui">
-        <div>
-            <b>1. Тапсырма:</b><br>
-            <select id="task" onchange="setupLab()" style="width:100%"><option value="alkane">Метанды хлорлау</option><option value="alkene">Этилен + KMnO4</option><option value="silver">Күміс айна</option></select>
+    # Реакцияға дейінгі және кейінгі визуалдау
+    fill_height = "60%" if start_btn else "0%"
+    liquid_color = work['color'] if start_btn else "#E0E0E0"
+    
+    # Пробирканың HTML/CSS кодын шығару
+    gas_html = '<div class="bubble"></div><div class="bubble" style="left:30%; animation-delay:0.5s"></div>' if (start_btn and work['gas']) else ""
+    
+    st.markdown(f"""
+        <div class="test-tube">
+            <div class="liquid" style="height: {fill_height}; background-color: {liquid_color};">
+                {gas_html}
+            </div>
         </div>
-        <div>
-            <b>2. Реагенттер (тек қажеттісі):</b><br>
-            <div id="reagents_area"></div>
-        </div>
-        <div>
-            <b>3. Жағдай:</b><br>
-            <select id="cond" style="width:100%"><option value="std">стандартты</option><option value="hv">hv (жарық)</option><option value="t">t (қыздыру)</option></select>
-        </div>
-        <button class="btn-start" onclick="run()">РЕАКЦИЯНЫ БАСТАУ</button>
-    </div>
-    <div id="log" style="text-align:center; margin-top:10px; font-weight:bold; height: 20px;"></div>
-</div>
+        <p style="text-align:center; margin-top:10px;">{'Реакциядан кейін' if start_btn else 'Бос пробирка'}</p>
+    """, unsafe_allow_html=True)
 
-<script>
-const data = {
-    alkane: { r: ["CH4", "Cl2", "NaOH", "H2O", "KMnO4"], corr: ["CH4", "Cl2"], c: "hv", c1: "#fff", c2: "#fff176", res: "#f8f9fa", info: "Метан хлорланды!" },
-    alkene: { r: ["C2H4", "KMnO4", "H2O", "C2H6", "HCl"], corr: ["C2H4", "KMnO4", "H2O"], c: "std", c1: "#fff", c2: "#9c27b0", res: "#5d4037", info: "Этилен тотығып, диол түзілді!" },
-    silver: { r: ["R-CHO", "Ag2O", "NH3", "NaOH", "CH3OH"], corr: ["R-CHO", "Ag2O", "NH3"], c: "t", c1: "#f1f1f1", c2: "#cfd8dc", res: "#bdc3c7", info: "Күміс айна түзілді!" }
-};
-
-function createMols(id, color, n) {
-    const el = document.getElementById(id); el.innerHTML = '';
-    for(let i=0; i<n; i++) {
-        let m = document.createElement('div'); m.className = 'molecule';
-        m.style.background = color; m.style.left = Math.random()*25+5+'px'; m.style.bottom = Math.random()*80+10+'px';
-        el.appendChild(m);
-    }
-}
-
-function setupLab() {
-    const v = document.getElementById('task').value;
-    const d = data[v];
-    const area = document.getElementById('reagents_area'); area.innerHTML = '';
-    d.r.forEach(n => { area.innerHTML += `<label><input type="checkbox" class="r-chk" value="${n}"> ${n}</label>`; });
-    document.getElementById('f_left').style.background = d.c1;
-    document.getElementById('f_right').style.background = d.c2;
-    document.getElementById('f_main').style.height = '0%';
-    document.getElementById('t_left').className = 'tube-container';
-    document.getElementById('t_right').className = 'tube-container';
-    document.getElementById('log').innerText = '';
-    createMols('m_left', '#3498db', 8); createMols('m_right', '#f1c40f', 8);
-    document.getElementById('m_main').innerHTML = '';
-}
-
-function run() {
-    const v = document.getElementById('task').value;
-    const d = data[v];
-    const sel = Array.from(document.querySelectorAll('.r-chk:checked')).map(x => x.value);
-    const cond = document.getElementById('cond').value;
-    const isOk = sel.length === d.corr.length && d.corr.every(x => sel.includes(x)) && cond === d.c;
-
-    if(isOk) {
-        document.getElementById('t_left').classList.add('pour-l');
-        document.getElementById('t_right').classList.add('pour-r');
-        document.getElementById('log').innerText = "⏳ Молекулалар әрекеттесуде...";
-        setTimeout(() => {
-            const f = document.getElementById('f_main');
-            f.style.height = '85%'; f.style.background = d.res;
-            if(v==='silver') f.style.boxShadow = "inset 0 0 25px white";
-            createMols('m_main', '#2c3e50', 12);
-            document.getElementById('log').innerHTML = "<span style='color:green'>✅ " + d.info + "</span>";
-        }, 1300);
-    } else {
-        document.getElementById('log').innerHTML = "<span style='color:red'>❌ Реагент немесе жағдай қате!</span>";
-    }
-}
-setupLab();
-</script>
-</body>
-</html>
-"""
-HTML(html_code)
+# Тапсырмалар бөлімі
+st.divider()
+st.subheader("📝 Бекіту тапсырмалары")
+q1 = st.radio("1. Бром суының түссізденуі ненің белгісі?", ["Қаныққан байланыс", "Қос байланыс (қанықпаған)", "Оттегінің бөлінуі"])
+if st.button("Тексеру"):
+    if q1 == "Қос байланыс (қанықпаған)":
+        st.balloons()
+        st.success("Дұрыс!")
+    else:
+        st.error("Қайта ойланып көріңіз.")
