@@ -1,89 +1,127 @@
 import streamlit as st
 import time
 
-# Беттің негізгі баптаулары
-st.set_page_config(page_title="Alkanes Lab Simulator", layout="wide")
+# 1. Беттің баптаулары
+st.set_page_config(page_title="Advanced Organic Chemistry Lab", layout="wide")
 
-# Деректер базасы
-alkane_experiments = {
-    "Метанның жануы": {
-        "steps": ["Газды жағу", "Пробирканы төңкеру", "Әк суын қосу"],
-        "visual": "🔥 Көгілдір жалынмен жанады. Әк суы лайланады.",
-        "observation": "Көмірқышқыл газы мен су түзіледі.",
-        "equation": "$CH_4 + 2O_2 \\rightarrow CO_2 + 2H_2O$",
-        "color": "#FF4B4B"
+# 2. Стильдер (Анимация және пробирка визуалдау үшін)
+st.markdown("""
+<style>
+    .test-tube {
+        width: 60px;
+        height: 180px;
+        border: 3px solid #ccc;
+        border-radius: 0 0 30px 30px;
+        margin: 0 auto;
+        position: relative;
+        background: rgba(255, 255, 255, 0.1);
+        overflow: hidden;
+    }
+    .liquid {
+        position: absolute;
+        bottom: 0;
+        width: 100%;
+        transition: all 2s ease;
+    }
+    .bubbles {
+        position: absolute;
+        bottom: 0;
+        width: 100%;
+        height: 100%;
+        display: none;
+    }
+</style>
+""", unsafe_allow_html=True)
+
+# 3. Реакциялар базасы (Нақтыланған теңдеулер)
+labs = {
+    "Этиленнің бромдалуы (Қанықпағандық)": {
+        "reagents": ["C2H4", "Br2"],
+        "equation": r"CH_2=CH_2 + Br_2 \rightarrow CH_2Br-CH_2Br",
+        "start_color": "#FF8C00",  # Қызғылт-сары
+        "end_color": "rgba(255, 255, 255, 0.5)",  # Түссіз
+        "desc": "Бром суы түссізденеді.",
+        "bubbles": True
     },
-    "Метанның хлорлануы (Орынбасу)": {
-        "steps": ["Метан мен хлорды араластыру", "Ультракүлгін сәуле түсіру", "Индикатор қағазын жақындату"],
-        "visual": "🟡 Хлордың сары түсі жоғалып, пробирка қабырғасында тамшылар пайда болады.",
-        "observation": "Индикатор қағазы қызарады (HCl түзілуі).",
-        "equation": "$CH_4 + Cl_2 \\xrightarrow{hv} CH_3Cl + HCl$",
-        "color": "#F0E68C"
+    "Күміс айна реакциясы (Альдегид)": {
+        "reagents": ["CH3CHO", "AgNO3", "NH3"],
+        "equation": r"CH_3CHO + 2[Ag(NH_3)_2]OH \xrightarrow{t} CH_3COONH_4 + 2Ag \downarrow + 3NH_3 + H_2O",
+        "start_color": "#E0E0E0", 
+        "end_color": "#C0C0C0",  # Күміс түс
+        "desc": "Пробирка қабырғасында жылтыр күміс тұнбасы түзіледі.",
+        "bubbles": False
     },
-    "Алкандардың қышқылдарға қатынасы": {
-        "steps": ["Парафин (қатты алкан) салу", "Концентрлі күкірт қышқылын қосу", "Қыздыру"],
-        "visual": "⚪ Ешқандай өзгеріс байқалмайды.",
-        "observation": "Алкандар химиялық белсенділігі төмен қосылыстар (парафиндер).",
-        "equation": "$C_nH_{2n+2} + H_2SO_4 \\rightarrow \\text{реакция жүрмейді}$",
-        "color": "#D3D3D3"
+    "Глюкозаның Cu(OH)2-мен тотығуы": {
+        "reagents": ["C6H12O6", "Cu(OH)2"],
+        "equation": r"C_6H_{12}O_6 + 2Cu(OH)_2 \xrightarrow{t} C_6H_{12}O_7 + Cu_2O \downarrow + 2H_2O",
+        "start_color": "#0000FF", # Көк
+        "end_color": "#B22222", # Кірпіш-қызыл
+        "desc": "Көгілдір тұнба қыздырғанда кірпіш-қызыл түске өзгереді.",
+        "bubbles": False
+    },
+    "Биурет реакциясы (Ақуыз)": {
+        "reagents": ["Protein", "CuSO4", "NaOH"],
+        "equation": r"\text{Пептидтік байланыс} + Cu^{2+} \xrightarrow{NaOH} \text{Күлгін кешенді қосылыс}",
+        "start_color": "#ADD8E6", 
+        "end_color": "#8A2BE2", # Күлгін
+        "desc": "Ерітінді ашық күлгін түске боялады.",
+        "bubbles": False
     }
 }
 
-st.title("🧪 Алкандардың химиялық қасиеттері: Виртуалды зертхана")
-st.markdown("---")
-
-# Сол жақ мәзір
-st.sidebar.header("🔬 Тәжірибені таңдау")
-lab_selection = st.sidebar.selectbox("Зертханалық жұмыс:", list(alkane_experiments.keys()))
+# 4. Интерфейс
+st.title("🧪 Органикалық химия: Анимациялық лаборатория")
+st.sidebar.header("Тәжірибені таңдаңыз")
+choice = st.sidebar.selectbox("Зертханалық жұмыс:", list(labs.keys()))
 
 col1, col2 = st.columns([1, 1])
 
 with col1:
-    st.header("🧪 Тәжірибе алаңы")
-    st.info(f"Тапсырма: {lab_selection}")
+    st.header("🔬 Лабораториялық үстел")
+    st.latex(labs[choice]["equation"])
     
-    # Реакция барысын көрсету
-    for i, step in enumerate(alkane_experiments[lab_selection]["steps"]):
-        st.write(f"{i+1}. {step}")
-
-    if st.button("🚀 Реакцияны бастау"):
-        progress_bar = st.progress(0)
-        status_text = st.empty()
+    # Визуалды пробирка (Анимация алдындағы күйі)
+    liquid_html = st.empty()
+    
+    if st.button("🧪 Реакцияны бастау"):
+        # Анимация қадамдары
+        for i in range(11):
+            color = labs[choice]["start_color"] if i < 3 else labs[choice]["end_color"]
+            height = 30 + i * 5
+            bubble_display = "block" if labs[choice]["bubbles"] and i > 5 else "none"
+            
+            liquid_html.markdown(f"""
+                <div class="test-tube">
+                    <div class="liquid" style="background-color: {color}; height: {height}%;"></div>
+                    <div class="bubbles" style="display: {bubble_display};">🫧🫧🫧</div>
+                </div>
+                """, unsafe_allow_html=True)
+            time.sleep(0.3)
         
-        for percent_complete in range(100):
-            time.sleep(0.01)
-            progress_bar.progress(percent_complete + 1)
-            status_text.text(f"Пробиркадағы процесс: {percent_complete + 1}%")
-        
-        st.subheader("👀 Бақылау:")
-        st.markdown(f"**{alkane_experiments[lab_selection]['visual']}**")
-        
-        # Визуалды пробирка моделі (CSS арқылы)
-        tube_color = alkane_experiments[lab_selection]["color"]
-        st.markdown(f"""
-            <div style="border: 4px solid #555; border-radius: 0 0 50px 50px; 
-            width: 80px; height: 200px; background-color: {tube_color}; 
-            margin: 20px auto; position: relative; box-shadow: inset 0 0 20px rgba(0,0,0,0.2);">
-                <div style="position: absolute; bottom: 10px; width: 100%; text-align: center; font-size: 10px;">Пробирка</div>
+        st.success(f"Нәтиже: {labs[choice]['desc']}")
+        st.snow() if "түссіз" in labs[choice]['desc'] else st.balloons()
+    else:
+        # Бастапқы күйі
+        liquid_html.markdown(f"""
+            <div class="test-tube">
+                <div class="liquid" style="background-color: {labs[choice]['start_color']}; height: 30%;"></div>
             </div>
             """, unsafe_allow_html=True)
 
 with col2:
-    st.header("📊 Қорытынды")
-    st.warning(f"**Нәтиже:** {alkane_experiments[lab_selection]['observation']}")
+    st.header("📝 Бақылау парағы")
+    st.write(f"**Қолданылатын заттар:** {', '.join(labs[choice]['reagents'])}")
     
-    st.markdown("### Химиялық теңдеу:")
-    st.latex(alkane_experiments[lab_selection]["equation"])
+    st.info("Тапсырма: Реакция теңдеуіндегі коэффициенттерді тексеріп, дәптеріңізге жазыңыз.")
     
-    st.markdown("---")
-    st.write("**Сұрақ:** Неліктен алкандарды 'парафиндер' деп атайды?")
-    user_answer = st.text_input("Жауабыңызды жазыңыз:")
-    if st.button("Тексеру"):
-        if "белсенділігі төмен" in user_answer.lower() or "аз" in user_answer.lower():
-            st.success("Дұрыс! Олар химиялық тұрғыдан өте енжар.")
+    # Оқушы жауабын тексеру бөлімі
+    st.subheader("🤖 Тексеруші")
+    answer = st.text_input("Бұл реакцияның белгісі қандай?")
+    if st.button("Жауапты тексеру"):
+        if any(word in answer.lower() for word in ["тұнба", "түс", "газ", "күміс"]):
+            st.success("Дұрыс! Сіз реакцияның негізгі белгісін таныдыңыз.")
         else:
-            st.info("Кеңес: Латынша 'parum affinis' сөзінің мағынасын ойлаңыз.")
+            st.warning("Оқулықты қайта қараңыз. Реакция өніміне назар аударыңыз.")
 
-st.sidebar.markdown("---")
-st.sidebar.write("**Нұсқаулық:**")
-st.sidebar.caption("1. Тәжірибені таңдаңыз. \n2. 'Реакцияны бастау' батырмасын басыңыз. \n3. Пробиркадағы өзгерісті бақылаңыз.")
+st.markdown("---")
+st.caption("© 2026 Virtual Chemistry Simulator - Оқушылар мен мұғалімдерге арналған.")
