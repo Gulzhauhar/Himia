@@ -1,79 +1,128 @@
 import streamlit as st
 import time
 
-# Беттің тақырыбы мен стилі
-st.set_page_config(page_title="Органикалық химия симуляторы", layout="centered")
+# Беттің баптаулары
+st.set_page_config(page_title="Органикалық химия зертханасы", layout="wide")
 
-st.title("🧪 Органикалық химия: Виртуалды зертхана")
-st.write("Төмендегі тізімнен реакцияны таңдап, 'Тәжірибені бастау' батырмасын басыңыз.")
+# CSS стильдері (Пробирка мен эффектілер үшін)
+st.markdown("""
+    <style>
+    .test-tube {
+        height: 250px;
+        width: 60px;
+        border: 3px solid #ccc;
+        border-radius: 0 0 30px 30px;
+        margin: auto;
+        position: relative;
+        background: rgba(255, 255, 255, 0.1);
+        overflow: hidden;
+    }
+    .liquid {
+        position: absolute;
+        bottom: 0;
+        width: 100%;
+        transition: all 1s ease;
+    }
+    .bubble {
+        position: absolute;
+        bottom: 10%;
+        left: 50%;
+        width: 10px;
+        height: 10px;
+        background: rgba(255, 255, 255, 0.5);
+        border-radius: 50%;
+        animation: rise 2s infinite;
+    }
+    @keyframes rise {
+        0% { bottom: 10%; opacity: 1; }
+        100% { bottom: 90%; opacity: 0; }
+    }
+    </style>
+""", unsafe_allow_html=True)
 
-# Реакциялар базасы
-reactions = {
-    "Глюкозаның тотығуы (Күміс айна реакциясы)": {
-        "reagents": "Глюкоза + [Ag(NH3)2]OH",
-        "process": "Пробирканы спиртшамда абайлап қыздырамыз...",
-        "result_color": "Күміс түсті жылтыр қабат",
-        "state": "Пробирка қабырғасында металл күміс тұнады",
-        "effect": "mirror"
+st.title("🔬 Органикалық химия: Виртуалды зертхана")
+st.write("Реактивтерді таңдап, зертханалық жұмысты орындаңыз.")
+
+# Зертханалық жұмыстар тізімі
+lab_works = {
+    "Альдегидтерді анықтау": {
+        "reagent_a": "Формальдегид",
+        "reagent_b": "AgNO3 + NH4OH (Күміс оксидінің аммиактағы ерітіндісі)",
+        "result_text": "Пробирка қабырғасында жылтыр күміс қабаты түзілді.",
+        "color": "#C0C0C0", # Күміс түс
+        "gas": False,
+        "precipitate": "Металл күміс (тұнба)",
+        "equation": "$$R-CHO + 2[Ag(NH_3)_2]OH \\xrightarrow{t} R-COONH_4 + 2Ag↓ + 3NH_3 + H_2O$$"
     },
-    "Этиленнің бром суын түссіздендіруі": {
-        "reagents": "Этилен (газ) + Бром суы (Br2)",
-        "process": "Газ өткізгіш түтік арқылы этиленді бром суы бар пробиркаға жібереміз...",
-        "result_color": "Сары-қоңыр түс жойылады (түссіз)",
-        "state": "Сұйықтық мөлдір болады",
-        "effect": "decolor"
+    "Қанықпаған көмірсутектер (Этилен)": {
+        "reagent_a": "Этилен (C2H4)",
+        "reagent_b": "Бром суы (Br2 ерітіндісі)",
+        "result_text": "Бром суының сары-қоңыр түсі жойылды.",
+        "color": "rgba(255, 255, 255, 0.2)", # Түссіз
+        "gas": True,
+        "precipitate": "Жоқ",
+        "equation": "$$CH_2=CH_2 + Br_2 \\rightarrow CH_2Br-CH_2Br$$"
     },
-    "Глицеринді анықтау (Мис (II) гидроксидімен)": {
-        "reagents": "Глицерин + Cu(OH)2",
-        "process": "Жаңа дайындалған көгілдір тұнбаға глицерин қосамыз...",
-        "result_color": "Ашық көк (сия көк) ерітінді",
-        "state": "Тұнба еріп, мөлдір кешенді қосылыс түзіледі",
-        "effect": "complex"
+    "Ақуызды анықтау (Биурет реакциясы)": {
+        "reagent_a": "Жұмыртқа ақуызы",
+        "reagent_b": "NaOH + CuSO4",
+        "result_text": "Ерітінді ашық күлгін түске боялды.",
+        "color": "#8A2BE2", # Күлгін
+        "gas": False,
+        "precipitate": "Жоқ (Кешенді қосылыс)",
+        "equation": "Ақуыз + Cu^{2+} \\xrightarrow{OH^-} \\text{Күлгін кешенді қосылыс}"
     }
 }
 
-# Сол жақтағы мәзір (Sidebar)
-option = st.sidebar.selectbox("Реакцияны таңдаңыз:", list(reactions.keys()))
-run_btn = st.sidebar.button("Тәжірибені бастау")
+# Сол жақ панель - Басқару
+st.sidebar.header("🛠 Зертханалық үстел")
+choice = st.sidebar.selectbox("Зертханалық жұмысты таңдаңыз:", list(lab_works.keys()))
+start_btn = st.sidebar.button("Реакцияны бастау")
 
-# Негізгі терезе
-st.subheader(f"Таңдалған реакция: {option}")
-st.info(f"**Қолданылатын заттар:** {reactions[option]['reagents']}")
+# Орталық бөлім - Эксперимент
+col1, col2 = st.columns([1, 1])
 
-if run_btn:
-    # Жүру процесінің анимациясы (имитация)
-    progress_bar = st.progress(0)
-    status_text = st.empty()
+with col1:
+    st.subheader("📋 Жұмыс барысы")
+    work = lab_works[choice]
+    st.write(f"**1-ші зат:** {work['reagent_a']}")
+    st.write(f"**2-ші зат:** {work['reagent_b']}")
     
-    for percent_complete in range(100):
-        time.sleep(0.02)
-        progress_bar.progress(percent_complete + 1)
-        status_text.text(f"Реакция жүріп жатыр... {percent_complete + 1}%")
-    
-    st.success("Реакция аяқталды!")
-    
-    # Нәтижелерді көрсету
-    col1, col2 = st.columns(2)
-    
-    with col1:
-        st.write("### Процесс сипаттамасы")
-        st.write(reactions[option]['process'])
-        
-    with col2:
-        st.write("### Бақылау нәтижесі")
-        st.write(f"**Түсі:** {reactions[option]['result_color']}")
-        st.write(f"**Күйі:** {reactions[option]['state']}")
+    if start_btn:
+        st.info("Процесс: Реактивтер араластырылуда...")
+        time.sleep(2)
+        st.success("Нәтиже дайын!")
+        st.write(f"**Бақылау:** {work['result_text']}")
+        st.write(f"**Тұнба:** {work['precipitate']}")
+        st.write("**Химиялық теңдеуі:**")
+        st.write(work['equation'])
 
-    # Визуалды индикатор (түсті көрсету)
-    if option == "Глюкозаның тотығуы (Күміс айна реакциясы)":
-        st.markdown('<div style="background-color: #C0C0C0; height: 100px; border-radius: 10px; text-align: center; line-height: 100px; color: black; font-weight: bold;">КҮМІС ҚАБАТ (Ag)</div>', unsafe_allow_html=True)
-    elif option == "Этиленнің бром суын түссіздендіруі":
-        st.markdown('<div style="background-color: white; border: 1px solid black; height: 100px; border-radius: 10px; text-align: center; line-height: 100px; color: black; font-weight: bold;">ТҮССІЗ ЕРІТІНДІ</div>', unsafe_allow_html=True)
-    elif option == "Глицеринді анықтау (Мис (II) гидроксидімен)":
-        st.markdown('<div style="background-color: #0000FF; height: 100px; border-radius: 10px; text-align: center; line-height: 100px; color: white; font-weight: bold;">СИЯ КӨК ЕРІТІНДІ</div>', unsafe_allow_html=True)
+with col2:
+    st.subheader("🧪 Пробирка")
+    
+    # Реакцияға дейінгі және кейінгі визуалдау
+    fill_height = "60%" if start_btn else "0%"
+    liquid_color = work['color'] if start_btn else "#E0E0E0"
+    
+    # Пробирканың HTML/CSS кодын шығару
+    gas_html = '<div class="bubble"></div><div class="bubble" style="left:30%; animation-delay:0.5s"></div>' if (start_btn and work['gas']) else ""
+    
+    st.markdown(f"""
+        <div class="test-tube">
+            <div class="liquid" style="height: {fill_height}; background-color: {liquid_color};">
+                {gas_html}
+            </div>
+        </div>
+        <p style="text-align:center; margin-top:10px;">{'Реакциядан кейін' if start_btn else 'Бос пробирка'}</p>
+    """, unsafe_allow_html=True)
 
-else:
-    st.warning("Тәжірибені көру үшін сол жақтағы батырманы басыңыз.")
-
+# Тапсырмалар бөлімі
 st.divider()
-st.write("© 2024 Химиялық Симулятор - Мұғалімдер мен оқушыларға көмекші құрал.")
+st.subheader("📝 Бекіту тапсырмалары")
+q1 = st.radio("1. Бром суының түссізденуі ненің белгісі?", ["Қаныққан байланыс", "Қос байланыс (қанықпаған)", "Оттегінің бөлінуі"])
+if st.button("Тексеру"):
+    if q1 == "Қос байланыс (қанықпаған)":
+        st.balloons()
+        st.success("Дұрыс!")
+    else:
+        st.error("Қайта ойланып көріңіз.")
