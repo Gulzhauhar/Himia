@@ -1,128 +1,89 @@
 import streamlit as st
 import time
 
-# Беттің баптаулары
-st.set_page_config(page_title="Органикалық химия зертханасы", layout="wide")
+# Беттің негізгі баптаулары
+st.set_page_config(page_title="Alkanes Lab Simulator", layout="wide")
 
-# CSS стильдері (Пробирка мен эффектілер үшін)
-st.markdown("""
-    <style>
-    .test-tube {
-        height: 250px;
-        width: 60px;
-        border: 3px solid #ccc;
-        border-radius: 0 0 30px 30px;
-        margin: auto;
-        position: relative;
-        background: rgba(255, 255, 255, 0.1);
-        overflow: hidden;
-    }
-    .liquid {
-        position: absolute;
-        bottom: 0;
-        width: 100%;
-        transition: all 1s ease;
-    }
-    .bubble {
-        position: absolute;
-        bottom: 10%;
-        left: 50%;
-        width: 10px;
-        height: 10px;
-        background: rgba(255, 255, 255, 0.5);
-        border-radius: 50%;
-        animation: rise 2s infinite;
-    }
-    @keyframes rise {
-        0% { bottom: 10%; opacity: 1; }
-        100% { bottom: 90%; opacity: 0; }
-    }
-    </style>
-""", unsafe_allow_html=True)
-
-st.title("🔬 Органикалық химия: Виртуалды зертхана")
-st.write("Реактивтерді таңдап, зертханалық жұмысты орындаңыз.")
-
-# Зертханалық жұмыстар тізімі
-lab_works = {
-    "Альдегидтерді анықтау": {
-        "reagent_a": "Формальдегид",
-        "reagent_b": "AgNO3 + NH4OH (Күміс оксидінің аммиактағы ерітіндісі)",
-        "result_text": "Пробирка қабырғасында жылтыр күміс қабаты түзілді.",
-        "color": "#C0C0C0", # Күміс түс
-        "gas": False,
-        "precipitate": "Металл күміс (тұнба)",
-        "equation": "$$R-CHO + 2[Ag(NH_3)_2]OH \\xrightarrow{t} R-COONH_4 + 2Ag↓ + 3NH_3 + H_2O$$"
+# Деректер базасы
+alkane_experiments = {
+    "Метанның жануы": {
+        "steps": ["Газды жағу", "Пробирканы төңкеру", "Әк суын қосу"],
+        "visual": "🔥 Көгілдір жалынмен жанады. Әк суы лайланады.",
+        "observation": "Көмірқышқыл газы мен су түзіледі.",
+        "equation": "$CH_4 + 2O_2 \\rightarrow CO_2 + 2H_2O$",
+        "color": "#FF4B4B"
     },
-    "Қанықпаған көмірсутектер (Этилен)": {
-        "reagent_a": "Этилен (C2H4)",
-        "reagent_b": "Бром суы (Br2 ерітіндісі)",
-        "result_text": "Бром суының сары-қоңыр түсі жойылды.",
-        "color": "rgba(255, 255, 255, 0.2)", # Түссіз
-        "gas": True,
-        "precipitate": "Жоқ",
-        "equation": "$$CH_2=CH_2 + Br_2 \\rightarrow CH_2Br-CH_2Br$$"
+    "Метанның хлорлануы (Орынбасу)": {
+        "steps": ["Метан мен хлорды араластыру", "Ультракүлгін сәуле түсіру", "Индикатор қағазын жақындату"],
+        "visual": "🟡 Хлордың сары түсі жоғалып, пробирка қабырғасында тамшылар пайда болады.",
+        "observation": "Индикатор қағазы қызарады (HCl түзілуі).",
+        "equation": "$CH_4 + Cl_2 \\xrightarrow{hv} CH_3Cl + HCl$",
+        "color": "#F0E68C"
     },
-    "Ақуызды анықтау (Биурет реакциясы)": {
-        "reagent_a": "Жұмыртқа ақуызы",
-        "reagent_b": "NaOH + CuSO4",
-        "result_text": "Ерітінді ашық күлгін түске боялды.",
-        "color": "#8A2BE2", # Күлгін
-        "gas": False,
-        "precipitate": "Жоқ (Кешенді қосылыс)",
-        "equation": "Ақуыз + Cu^{2+} \\xrightarrow{OH^-} \\text{Күлгін кешенді қосылыс}"
+    "Алкандардың қышқылдарға қатынасы": {
+        "steps": ["Парафин (қатты алкан) салу", "Концентрлі күкірт қышқылын қосу", "Қыздыру"],
+        "visual": "⚪ Ешқандай өзгеріс байқалмайды.",
+        "observation": "Алкандар химиялық белсенділігі төмен қосылыстар (парафиндер).",
+        "equation": "$C_nH_{2n+2} + H_2SO_4 \\rightarrow \\text{реакция жүрмейді}$",
+        "color": "#D3D3D3"
     }
 }
 
-# Сол жақ панель - Басқару
-st.sidebar.header("🛠 Зертханалық үстел")
-choice = st.sidebar.selectbox("Зертханалық жұмысты таңдаңыз:", list(lab_works.keys()))
-start_btn = st.sidebar.button("Реакцияны бастау")
+st.title("🧪 Алкандардың химиялық қасиеттері: Виртуалды зертхана")
+st.markdown("---")
 
-# Орталық бөлім - Эксперимент
+# Сол жақ мәзір
+st.sidebar.header("🔬 Тәжірибені таңдау")
+lab_selection = st.sidebar.selectbox("Зертханалық жұмыс:", list(alkane_experiments.keys()))
+
 col1, col2 = st.columns([1, 1])
 
 with col1:
-    st.subheader("📋 Жұмыс барысы")
-    work = lab_works[choice]
-    st.write(f"**1-ші зат:** {work['reagent_a']}")
-    st.write(f"**2-ші зат:** {work['reagent_b']}")
+    st.header("🧪 Тәжірибе алаңы")
+    st.info(f"Тапсырма: {lab_selection}")
     
-    if start_btn:
-        st.info("Процесс: Реактивтер араластырылуда...")
-        time.sleep(2)
-        st.success("Нәтиже дайын!")
-        st.write(f"**Бақылау:** {work['result_text']}")
-        st.write(f"**Тұнба:** {work['precipitate']}")
-        st.write("**Химиялық теңдеуі:**")
-        st.write(work['equation'])
+    # Реакция барысын көрсету
+    for i, step in enumerate(alkane_experiments[lab_selection]["steps"]):
+        st.write(f"{i+1}. {step}")
+
+    if st.button("🚀 Реакцияны бастау"):
+        progress_bar = st.progress(0)
+        status_text = st.empty()
+        
+        for percent_complete in range(100):
+            time.sleep(0.01)
+            progress_bar.progress(percent_complete + 1)
+            status_text.text(f"Пробиркадағы процесс: {percent_complete + 1}%")
+        
+        st.subheader("👀 Бақылау:")
+        st.markdown(f"**{alkane_experiments[lab_selection]['visual']}**")
+        
+        # Визуалды пробирка моделі (CSS арқылы)
+        tube_color = alkane_experiments[lab_selection]["color"]
+        st.markdown(f"""
+            <div style="border: 4px solid #555; border-radius: 0 0 50px 50px; 
+            width: 80px; height: 200px; background-color: {tube_color}; 
+            margin: 20px auto; position: relative; box-shadow: inset 0 0 20px rgba(0,0,0,0.2);">
+                <div style="position: absolute; bottom: 10px; width: 100%; text-align: center; font-size: 10px;">Пробирка</div>
+            </div>
+            """, unsafe_allow_html=True)
 
 with col2:
-    st.subheader("🧪 Пробирка")
+    st.header("📊 Қорытынды")
+    st.warning(f"**Нәтиже:** {alkane_experiments[lab_selection]['observation']}")
     
-    # Реакцияға дейінгі және кейінгі визуалдау
-    fill_height = "60%" if start_btn else "0%"
-    liquid_color = work['color'] if start_btn else "#E0E0E0"
+    st.markdown("### Химиялық теңдеу:")
+    st.latex(alkane_experiments[lab_selection]["equation"])
     
-    # Пробирканың HTML/CSS кодын шығару
-    gas_html = '<div class="bubble"></div><div class="bubble" style="left:30%; animation-delay:0.5s"></div>' if (start_btn and work['gas']) else ""
-    
-    st.markdown(f"""
-        <div class="test-tube">
-            <div class="liquid" style="height: {fill_height}; background-color: {liquid_color};">
-                {gas_html}
-            </div>
-        </div>
-        <p style="text-align:center; margin-top:10px;">{'Реакциядан кейін' if start_btn else 'Бос пробирка'}</p>
-    """, unsafe_allow_html=True)
+    st.markdown("---")
+    st.write("**Сұрақ:** Неліктен алкандарды 'парафиндер' деп атайды?")
+    user_answer = st.text_input("Жауабыңызды жазыңыз:")
+    if st.button("Тексеру"):
+        if "белсенділігі төмен" in user_answer.lower() or "аз" in user_answer.lower():
+            st.success("Дұрыс! Олар химиялық тұрғыдан өте енжар.")
+        else:
+            st.info("Кеңес: Латынша 'parum affinis' сөзінің мағынасын ойлаңыз.")
 
-# Тапсырмалар бөлімі
-st.divider()
-st.subheader("📝 Бекіту тапсырмалары")
-q1 = st.radio("1. Бром суының түссізденуі ненің белгісі?", ["Қаныққан байланыс", "Қос байланыс (қанықпаған)", "Оттегінің бөлінуі"])
-if st.button("Тексеру"):
-    if q1 == "Қос байланыс (қанықпаған)":
-        st.balloons()
-        st.success("Дұрыс!")
-    else:
-        st.error("Қайта ойланып көріңіз.")
+st.sidebar.markdown("---")
+st.sidebar.write("**Нұсқаулық:**")
+st.sidebar.caption("1. Тәжірибені таңдаңыз. \n2. 'Реакцияны бастау' батырмасын басыңыз. \n3. Пробиркадағы өзгерісті бақылаңыз.")
